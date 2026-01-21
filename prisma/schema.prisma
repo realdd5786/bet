@@ -1,0 +1,91 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+enum PixPurchaseStatus {
+  PENDING
+  PAID
+  EXPIRED
+  FAILED
+}
+
+enum CreditTransactionType {
+  PURCHASE
+  CONSUME
+  REFUND
+  ADJUST
+}
+
+enum CreditTransactionStatus {
+  PENDING
+  PAID
+  RESERVED
+  CONSUMED
+  REFUNDED
+  FAILED
+}
+
+model User {
+  id                      String                 @id @default(cuid())
+  email                   String                 @unique
+  passwordHash            String
+  resetPasswordTokenHash  String?
+  resetPasswordExpiresAt  DateTime?
+  createdAt               DateTime               @default(now())
+  updatedAt               DateTime               @updatedAt
+  creditTransactions      CreditTransaction[]
+  pixPurchases            PixPurchase[]
+  analyses                Analysis[]
+}
+
+model CreditTransaction {
+  id        String                   @id @default(cuid())
+  userId    String
+  user      User                     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type      CreditTransactionType
+  status    CreditTransactionStatus
+  amount    Int
+  metadata  Json
+  createdAt DateTime                 @default(now())
+
+  @@index([userId, createdAt])
+}
+
+model PixPurchase {
+  id           String            @id @default(cuid())
+  userId       String
+  user         User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  packageId    String
+  amountBRL    Int
+  status       PixPurchaseStatus
+  pixKey       String
+  pixPayload   String
+  qrCodeBase64 String?
+  expiresAt    DateTime
+  createdAt    DateTime          @default(now())
+  paidAt       DateTime?
+
+  @@index([userId, createdAt])
+}
+
+model Analysis {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  teamA       String
+  teamB       String
+  competition String
+  matchDate   DateTime?
+  prompt      String
+  resultJson  Json
+  resultText  String
+  costCredits Int
+  createdAt   DateTime @default(now())
+
+  @@index([userId, createdAt])
+}
